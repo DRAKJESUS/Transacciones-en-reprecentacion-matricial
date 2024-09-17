@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformaciones Geométricas</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: 10px auto;
+        }
+        .resultado {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .titulo {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="resultados"></div> 
+
+    <script type="text/javascript">
+
+        var image = new Image(); 
+        image.onload = imageLoaded;
+        image.src = "power.jpg";  
+
+        function imageLoaded() {
+            var canvasOriginal = document.createElement("canvas");
+            var ctxOriginal = canvasOriginal.getContext("2d");
+            canvasOriginal.width = image.width;
+            canvasOriginal.height = image.height;
+            ctxOriginal.drawImage(image, 0, 0);
+
+            var transformaciones = [
+                { tipo: 'Rotación 45°', matriz: matrizRotacion(45) },
+                { tipo: 'Escalamiento 0.5x', matriz: matrizEscalamiento(0.5, 0.5) },  
+                { tipo: 'Traslación 50px', matriz: matrizTraslacion(50, 50) },
+                { tipo: 'Sizallado en X', matriz: matrizSizallado(1, 0) }
+            ];
+
+            transformaciones.forEach(function (transf) {
+                var resultadoDiv = document.getElementById("resultados");
+
+                // Crear un nuevo div para la transformación
+                var resultadoItem = document.createElement("div");
+                resultadoItem.className = "resultado";
+
+                // Crear un título para la transformación
+                var titulo = document.createElement("div");
+                titulo.className = "titulo";
+                titulo.textContent = transf.tipo;
+
+                // Crear un nuevo canvas para la transformación
+                var nuevoCanvas = document.createElement("canvas");
+                nuevoCanvas.width = image.width;
+                nuevoCanvas.height = image.height;
+
+                // Añadir título y canvas al div
+                resultadoItem.appendChild(titulo);
+                resultadoItem.appendChild(nuevoCanvas);
+                resultadoDiv.appendChild(resultadoItem);
+
+                // Aplicar la transformación
+                aplicarTransformacion(canvasOriginal, nuevoCanvas, transf.matriz);
+            });
+        }
+
+        function aplicarTransformacion(canvasFuente, canvasDestino, matriz) {
+            var ctxFuente = canvasFuente.getContext("2d");
+            var imgDataFuente = ctxFuente.getImageData(0, 0, canvasFuente.width, canvasFuente.height);
+            var pixelesFuente = imgDataFuente.data;
+
+            var ctxDestino = canvasDestino.getContext("2d");
+            var imgDataDestino = ctxDestino.createImageData(canvasDestino.width, canvasDestino.height);
+            var pixelesDestino = imgDataDestino.data;
+
+            
+            for (var i = 0; i < pixelesDestino.length; i += 4) {
+                pixelesDestino[i] = 255;     // Red
+                pixelesDestino[i + 1] = 255; // Green
+                pixelesDestino[i + 2] = 255; // Blue
+                pixelesDestino[i + 3] = 255; // Alpha
+            }
+
+            
+            for (var y = 0; y < canvasFuente.height; y++) {
+                for (var x = 0; x < canvasFuente.width; x++) {
+                    var idx = (y * canvasFuente.width + x) * 4;
+
+                    
+                    var [xTransformado, yTransformado] = aplicarMatriz(x, y, matriz);
+
+                    // Asegurarse de que las coordenadas transformadas sean válidas
+                    if (xTransformado >= 0 && xTransformado < canvasDestino.width && yTransformado >= 0 && yTransformado < canvasDestino.height) {
+                        var idxDestino = (Math.floor(yTransformado) * canvasDestino.width + Math.floor(xTransformado)) * 4;
+                        pixelesDestino[idxDestino] = pixelesFuente[idx];
+                        pixelesDestino[idxDestino + 1] = pixelesFuente[idx + 1];
+                        pixelesDestino[idxDestino + 2] = pixelesFuente[idx + 2];
+                        pixelesDestino[idxDestino + 3] = 255; // Alpha
+                    }
+                }
+            }
+
+            ctxDestino.putImageData(imgDataDestino, 0, 0);
+        }
+
+        function matrizRotacion(angulo) {
+            var rad = (Math.PI / 180) * angulo;
+            return [
+                [Math.cos(rad), -Math.sin(rad), 0],
+                [Math.sin(rad), Math.cos(rad), 0],
+                [0, 0, 1]
+            ];
+        }
+
+        function matrizEscalamiento(sx, sy) {
+            return [
+                [sx, 0, 0],
+                [0, sy, 0],
+                [0, 0, 1]
+            ];
+        }
+
+        function matrizTraslacion(tx, ty) {
+            return [
+                [1, 0, tx],
+                [0, 1, ty],
+                [0, 0, 1]
+            ];
+        }
+
+        function matrizSizallado(shx, shy) {
+            return [
+                [1, shx, 0],
+                [shy, 1, 0],
+                [0, 0, 1]
+            ];
+        }
+
+        function aplicarMatriz(x, y, matriz) {
+            var xNuevo = x * matriz[0][0] + y * matriz[0][1] + matriz[0][2];
+            var yNuevo = x * matriz[1][0] + y * matriz[1][1] + matriz[1][2];
+            return [xNuevo, yNuevo];
+        }
+
+    </script>
+</body>
+</html>
